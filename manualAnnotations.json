@@ -1,0 +1,119 @@
+{
+  "outline": {
+    "Genesis": {
+      "chapters": {
+        "1": {
+          "_outline": {
+            "title": "test",
+            "range": "1-5",
+            "items": [
+              {
+                "text": "1",
+                "verse": "1",
+                "subpoints": []
+              },
+              {
+                "text": "2",
+                "verse": "4",
+                "subpoints": []
+              },
+              {
+                "text": "2",
+                "verse": "5",
+                "subpoints": []
+              }
+            ]
+          }
+        },
+        "2": {
+          "_outline": {
+            "title": "test",
+            "range": "1-5",
+            "items": [
+              {
+                "text": "1",
+                "verse": "",
+                "subpoints": []
+              },
+              {
+                "text": "2",
+                "verse": "",
+                "subpoints": []
+              },
+              {
+                "text": "3",
+                "verse": "",
+                "subpoints": []
+              }
+            ]
+          }
+        },
+        "3": {
+          "_outline": {
+            "title": "test chapter 3",
+            "range": "1-10",
+            "items": [
+              {
+                "text": "1",
+                "verse": "",
+                "subpoints": [
+                  "1"
+                ]
+              },
+              {
+                "text": "2",
+                "verse": "",
+                "subpoints": []
+              },
+              {
+                "text": "3",
+                "verse": "",
+                "subpoints": []
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "manuscript": {
+    "Genesis": {
+      "chapters": {
+        "1": {
+          "_manuscript": {
+            "title": "test",
+            "range": "1-5",
+            "content": "test content"
+          }
+        },
+        "2": {
+          "_manuscript": {
+            "title": "test manuscript",
+            "range": "1-5",
+            "content": "test content"
+          }
+        }
+      }
+    }
+  },
+  "commentary": {
+    "Genesis": {
+      "chapters": {
+        "1": {
+          "_commentary": {
+            "title": "test",
+            "range": "1-5",
+            "content": "test commentary"
+          }
+        },
+        "2": {
+          "_commentary": {
+            "title": "test commentary",
+            "range": "1-5",
+            "content": "test commentary material"
+          }
+        }
+      }
+    }
+  }
+}

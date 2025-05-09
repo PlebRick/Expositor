@@ -1,0 +1,20 @@
+{
+  "Genesis": {
+    "chapters": {
+      "1": {
+        "_manuscript": {
+          "title": "test",
+          "range": "1-5",
+          "content": "test content"
+        }
+      },
+      "2": {
+        "_manuscript": {
+          "title": "test manuscript",
+          "range": "1-5",
+          "content": "test content"
+        }
+      }
+    }
+  }
+}

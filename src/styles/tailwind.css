@@ -1,0 +1,10 @@
+/* File: src/styles/tailwind.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* You can add your custom CSS variables here, e.g.: */
+:root {
+  --color-primary: #4f46e5;
+  --color-secondary: #ec4899;
+}
