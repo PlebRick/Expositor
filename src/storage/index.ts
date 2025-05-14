@@ -1,4 +1,4 @@
-// src/storage/index.ts  (NEW – adapter selector)
+// src/storage/index.ts  (FULL REPLACEMENT)
 import {
   FSStorage,
   listFiles as fsList,
@@ -12,22 +12,22 @@ import {
   deleteNote as idbDelete,
   dbPromise
 } from './idb';
+import { AnyNote } from '../models';
+import { stringifyNote } from '../utils/markdown';
 
 export type StorageBackend = 'fs' | 'idb';
 let backend: StorageBackend = 'idb';
 
-/* Initialise FS mode after folder picker */
+/*──────────────────────────────────────────────────────────────────*/
 export async function initFS(handle: FileSystemDirectoryHandle) {
   FSStorage.init(handle);
   backend = 'fs';
 }
 
-/* Unified helpers ---------------------------------------------------------------- */
-
+/*──────────── unified read/list/delete for existing files ─────────*/
 export async function listFiles(book: string, chap: string) {
   if (backend === 'fs') return fsList(book, chap);
 
-  /* synthesize stub handles from IndexedDB keys */
   const db = await dbPromise;
   const keys = await db.getAllKeys('notes');
   const prefix = `${book}/${chap}/`;
@@ -37,16 +37,45 @@ export async function listFiles(book: string, chap: string) {
 }
 
 export async function readNote(handleOrStub: any) {
-  if (backend === 'fs') return fsRead(handleOrStub);
-  return idbRead(handleOrStub.name);
+  return backend === 'fs'
+    ? fsRead(handleOrStub)
+    : idbRead(handleOrStub.name);
 }
 
-export async function writeNote(handleOrStub: any, markdown: string) {
-  if (backend === 'fs') return fsWrite(handleOrStub, markdown);
-  return idbWrite(handleOrStub.name, markdown);
+export async function writeNote(handleOrStub: any, note: AnyNote) {
+  return backend === 'fs'
+    ? fsWrite(handleOrStub, note)
+    : idbWrite(handleOrStub.name, stringifyNote(note));
 }
 
 export async function deleteNote(handleOrStub: any) {
-  if (backend === 'fs') return fsDelete(handleOrStub);
-  return idbDelete(handleOrStub.name);
+  return backend === 'fs'
+    ? fsDelete(handleOrStub)
+    : idbDelete(handleOrStub.name);
+}
+
+/*──────────── create brand-new file from a note object ────────────*/
+export async function createNote(
+  book: string,
+  chap: string,
+  note: AnyNote
+) {
+  const fileName = makeFileName(note);
+  if (backend === 'fs') {
+    /* create empty file then write */
+    const root = await (window as any).expositorFS as FileSystemDirectoryHandle;
+    const bookDir = await root.getDirectoryHandle(book, { create: true });
+    const chapDir = await bookDir.getDirectoryHandle(chap, { create: true });
+    const handle = await chapDir.getFileHandle(fileName, { create: true });
+    await fsWrite(handle, note);
+    return handle;
+  } else {
+    const key = `${book}/${chap}/${fileName}`;
+    return idbWrite(key, stringifyNote(note));
+  }
+}
+
+function makeFileName(note: AnyNote) {
+  const clean = note.range.replace(/\s+/g, '');
+  return `${note.type}-${clean}.md`;
 }
