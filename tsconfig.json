@@ -1,0 +1,208 @@
+/* ============================================================================
+   📄 File: tsconfig.json  (root)
+   ----------------------------------------------------------------------------
+   Sets up TypeScript for the project using ES modules, strict mode, and
+   preserves JSX/TS output for Vite.
+   ============================================================================ */
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ES2020",
+    "moduleResolution": "Node",
+    "outDir": "dist",
+    "rootDir": "src",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["src/**/*", "scripts/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+
+/* ============================================================================
+   📄 File: package.json  (excerpt showing new dev dependencies & scripts)
+   ----------------------------------------------------------------------------
+   The rest of the existing package.json remains unchanged unless noted.
+   ============================================================================ */
+{
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vite": "^5.0.0",
+    "vitest": "^1.5.1",
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    // … keep existing deps (tailwindcss, autoprefixer, etc.)
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    // existing scripts …
+  }
+}
+
+/* ============================================================================
+   📄 File: src/models.ts  (new)
+   ----------------------------------------------------------------------------
+   Central type definitions for outlines, manuscripts, commentaries, and front
+   matter parsed from Markdown files.
+   ============================================================================ */
+
+export type NoteType = 'outline' | 'manuscript' | 'commentary';
+
+export interface FrontMatterBase {
+  type: NoteType;
+  title: string;
+  range: string; // e.g. "1-5" or "3"
+  created?: string; // ISO 8601
+  updated?: string; // ISO 8601
+}
+
+export interface OutlineItem {
+  text: string;
+  verse?: string;
+  subpoints: string[];
+}
+
+export interface OutlineNote extends FrontMatterBase {
+  type: 'outline';
+  items: OutlineItem[];
+}
+
+export interface ManuscriptNote extends FrontMatterBase {
+  type: 'manuscript';
+  content: string;
+}
+
+export interface CommentaryNote extends FrontMatterBase {
+  type: 'commentary';
+  content: string;
+}
+
+export type AnyNote = OutlineNote | ManuscriptNote | CommentaryNote;
+
+/* ============================================================================
+   📄 File: src/store.ts  (new)
+   ----------------------------------------------------------------------------
+   Central reactive state (vanilla singleton) to replace window globals.
+   A lightweight pub‑sub so UI modules can subscribe to changes.
+   ============================================================================ */
+
+interface State {
+  book: string;
+  chapter: string;
+  tab: NoteType; // active UI tab
+}
+
+class Store {
+  private state: State = { book: '', chapter: '', tab: 'outline' };
+  private listeners = new Set<(s: State) => void>();
+
+  get snapshot(): State {
+    return { ...this.state };
+  }
+
+  set<K extends keyof State>(key: K, value: State[K]) {
+    if (this.state[key] === value) return;
+    this.state[key] = value;
+    this.listeners.forEach(l => l(this.snapshot));
+  }
+
+  subscribe(cb: (s: State) => void) {
+    this.listeners.add(cb);
+    return () => this.listeners.delete(cb);
+  }
+}
+
+export const store = new Store();
+
+/* ============================================================================
+   📄 File: src/storage/fs.ts  (new – File‑System Access adapter)
+   ----------------------------------------------------------------------------
+   API: listFiles(book, chapter), readNote(fileName), writeNote(note), deleteNote(fileName)
+   Uses a cached directory handle stored via IndexedDB.
+   NOTE: Implementation skeleton; details will be filled in subsequent commits.
+   ============================================================================ */
+
+import { FrontMatterBase, AnyNote } from '../models';
+
+export namespace FSStorage {
+  let rootHandle: FileSystemDirectoryHandle | null = null;
+
+  export function init(handle: FileSystemDirectoryHandle) {
+    rootHandle = handle;
+  }
+
+  export async function listFiles(book: string, chapter: string): Promise<FileSystemFileHandle[]> {
+    if (!rootHandle) throw new Error('FS not initialised');
+    const bookHandle = await rootHandle.getDirectoryHandle(book);
+    const chapHandle = await bookHandle.getDirectoryHandle(chapter);
+    const files: FileSystemFileHandle[] = [];
+    for await (const entry of chapHandle.values()) {
+      if (entry.kind === 'file') files.push(entry);
+    }
+    return files;
+  }
+
+  export async function readNote(handle: FileSystemFileHandle): Promise<AnyNote> {
+    const file = await handle.getFile();
+    const text = await file.text();
+    // TODO: parse front‑matter & body → note object
+    return JSON.parse('{}');
+  }
+
+  export async function writeNote(handle: FileSystemFileHandle, note: AnyNote, body: string) {
+    const writable = await handle.createWritable();
+    await writable.write(body);
+    await writable.close();
+  }
+
+  export async function deleteNote(handle: FileSystemFileHandle) {
+    await handle.remove();
+  }
+}
+
+/* ============================================================================
+   📄 File: src/storage/idb.ts  (new – IndexedDB fallback)
+   ============================================================================ */
+
+import { openDB, DBSchema } from 'idb';
+import { AnyNote } from '../models';
+
+interface NotesDB extends DBSchema {
+  notes: {
+    key: string; // `${book}/${chapter}/${filename}`
+    value: string; // raw Markdown
+  };
+  settings: {
+    key: string;
+    value: unknown;
+  };
+}
+
+export const idb = openDB<NotesDB>('ExpositorNotes', 1, {
+  upgrade(db) {
+    db.createObjectStore('notes');
+    db.createObjectStore('settings');
+  }
+});
+
+export async function saveNote(key: string, md: string) {
+  const db = await idb;
+  await db.put('notes', md, key);
+}
+
+export async function loadNote(key: string): Promise<string | undefined> {
+  const db = await idb;
+  return db.get('notes', key);
+}
+
+/* ============================================================================
+   END OF INITIAL PHASE‑1 REFRACTOR
+   ----------------------------------------------------------------------------
+   Next commit will integrate these layers with existing UI modules and remove
+   window globals. */
