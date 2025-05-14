@@ -1,9 +1,10 @@
-// src/storage/idb.ts  (IndexedDB fallback)
+// src/storage/idb.ts  (FULL REPLACEMENT)
 import { openDB, DBSchema } from 'idb';
 
 interface NotesDB extends DBSchema {
   notes: {
-    key: string;   // "Genesis/01/outline-1-5.md"
+    /* key example: "Genesis/01/outline-1-5.md" */
+    key: string;
     value: string; // raw Markdown
   };
   settings: {
@@ -19,9 +20,11 @@ export const dbPromise = openDB<NotesDB>('ExpositorNotes', 1, {
   }
 });
 
-export async function saveNote(key: string, md: string) {
+/* ── CRUD helpers ─────────────────────────────────────────────── */
+
+export async function saveNote(key: string, markdown: string) {
   const db = await dbPromise;
-  await db.put('notes', md, key);
+  await db.put('notes', markdown, key);
 }
 
 export async function loadNote(key: string) {
