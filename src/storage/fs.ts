@@ -1,49 +1,52 @@
-// src/storage/fs.ts  (FULL REPLACEMENT)
+/* src/storage/fs.ts
+ * File-System Access helpers (Chromium only).
+ */
+
 import { AnyNote } from '../models';
-import { parseNote, stringifyNote } from '../utils/markdown';
+import { stringifyNote } from '../utils/markdown';
 
 export namespace FSStorage {
-  let rootHandle: FileSystemDirectoryHandle | null = null;
+  let root: FileSystemDirectoryHandle | null = null;
+  export const init = (h: FileSystemDirectoryHandle) => (root = h);
 
-  /** Called once after user picks the top-level `data/` folder */
-  export function init(handle: FileSystemDirectoryHandle) {
-    rootHandle = handle;
+  /* list chapter files */
+  export async function listFiles(book: string, chap: string) {
+    if (!root) return [];
+    try {
+      const chapDir = await (await root.getDirectoryHandle(book))
+        .getDirectoryHandle(chap);
+      const out: { kind: 'file'; name: string; handle: FileSystemFileHandle }[] = [];
+      for await (const [name, h] of chapDir.entries()) {
+        if (h.kind === 'file') out.push({ kind: 'file', name, handle: h as FileSystemFileHandle });
+      }
+      return out;
+    } catch { return []; }
   }
 
-  /** List Markdown files for a chapter */
-  export async function listFiles(
-    book: string,
-    chap: string
-  ): Promise<FileSystemFileHandle[]> {
-    if (!rootHandle) throw new Error('FS not initialised');
-    const bookDir = await rootHandle.getDirectoryHandle(book);
-    const chapDir = await bookDir.getDirectoryHandle(chap);
-    const out: FileSystemFileHandle[] = [];
-    for await (const entry of chapDir.values()) {
-      if (entry.kind === 'file' && entry.name.endsWith('.md')) out.push(entry);
-    }
-    return out;
-  }
+  /* read / write / delete */
+  export const readNote = async (h: FileSystemFileHandle) =>
+    (await h.getFile()).text();
 
-  /** Read & parse a note */
-  export async function readNote(handle: FileSystemFileHandle): Promise<AnyNote> {
-    const file = await handle.getFile();
-    return parseNote(await file.text());
-  }
-
-  /** Overwrite a note file */
-  export async function writeNote(
-    handle: FileSystemFileHandle,
-    note: AnyNote
-  ) {
-    const md = stringifyNote(note);
-    const w = await handle.createWritable();
-    await w.write(md);
+  export const writeNote = async (h: FileSystemFileHandle, n: AnyNote) => {
+    const w = await h.createWritable();
+    await w.write(stringifyNote(n));
     await w.close();
-  }
+  };
 
-  /** Delete a note file */
-  export async function deleteNote(handle: FileSystemFileHandle) {
-    await handle.remove();
+  export const deleteNote = async (h: FileSystemFileHandle) => {
+    // @ts-ignore getParent not in libDOM yet
+    const dir: FileSystemDirectoryHandle = await h.getParent();
+    // @ts-ignore
+    await dir.removeEntry(h.name);
+  };
+
+  export async function fileExists(book: string, chap: string, file: string) {
+    if (!root) return false;
+    try {
+      await (await (await root.getDirectoryHandle(book))
+        .getDirectoryHandle(chap))
+        .getFileHandle(file);
+      return true;
+    } catch { return false; }
   }
 }

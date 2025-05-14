@@ -1,38 +1,48 @@
-// src/storage/idb.ts  (FULL REPLACEMENT)
-import { openDB, DBSchema } from 'idb';
+/* src/storage/idb.ts — COMPLETE REPLACEMENT */
 
+import { openDB, DBSchema, IDBPDatabase } from 'idb';
+
+/*────────────────────── schema ──────────────────────*/
 interface NotesDB extends DBSchema {
   notes: {
     /* key example: "Genesis/01/outline-1-5.md" */
     key: string;
-    value: string; // raw Markdown
+    value: string;            // raw Markdown
   };
   settings: {
-    key: string;
+    key: string;              // arbitrary setting key
     value: unknown;
   };
 }
 
-export const dbPromise = openDB<NotesDB>('ExpositorNotes', 1, {
-  upgrade(db) {
-    db.createObjectStore('notes');
-    db.createObjectStore('settings');
+/*────────────────────── DB handle ───────────────────*/
+export const dbPromise: Promise<IDBPDatabase<NotesDB>> = openDB<NotesDB>(
+  'ExpositorNotes',
+  1,
+  {
+    upgrade(db) {
+      db.createObjectStore('notes');
+      db.createObjectStore('settings');
+    }
   }
-});
+);
 
-/* ── CRUD helpers ─────────────────────────────────────────────── */
+/*────────────────────── NOTE CRUD ───────────────────*/
+export const saveNote = (key: string, md: string) =>
+  dbPromise.then(db => db.put('notes', md, key));
 
-export async function saveNote(key: string, markdown: string) {
-  const db = await dbPromise;
-  await db.put('notes', markdown, key);
-}
+export const loadNote = (key: string) =>
+  dbPromise.then(db => db.get('notes', key));
 
-export async function loadNote(key: string) {
-  const db = await dbPromise;
-  return db.get('notes', key);
-}
+export const deleteNote = (key: string) =>
+  dbPromise.then(db => db.delete('notes', key));
 
-export async function deleteNote(key: string) {
-  const db = await dbPromise;
-  await db.delete('notes', key);
-}
+export const noteExists = (key: string) =>
+  dbPromise.then(db => db.count('notes', key).then(c => c > 0));
+
+/*────────────────────── SETTINGS KV ─────────────────*/
+export const saveSetting = (key: string, value: unknown) =>
+  dbPromise.then(db => db.put('settings', value, key));
+
+export const loadSetting = <T = unknown>(key: string) =>
+  dbPromise.then(db => db.get('settings', key) as Promise<T>);

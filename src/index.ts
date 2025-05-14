@@ -1,38 +1,36 @@
-// src/index.ts  (REPLACES index.js – now TypeScript + central store)
+/* src/index.ts — COMPLETE REPLACEMENT */
+
 import './style.css';
-import { store } from './store';
+
+/* UI boot */
 import { initToggles, initDraggable, initSettings } from './layout';
-import { initTabs } from './tabs';
-import { renderSidebar } from './sidebar';
+import { renderSidebar }        from './sidebar';
 import { renderChapterContent } from './renderers/chapter';
-import { setupImportExport } from './importExport';
+import { initDrawerLogic }      from './drawer';
+import { initImportExportButtons } from './importExport';
 
-console.log('✅ index.ts booting');
+import { store } from './store';
 
-async function bootstrap() {
-  /* 1️⃣ Load manifest */
-  const manifestResp = await fetch('/data/manifest.json');
-  if (!manifestResp.ok) throw new Error('manifest.json missing');
-  const manifest = await manifestResp.json() as Record<string, number>;
+/*──────────────── 1. load manifest ────────────────*/
+let manifest: Record<string, number> = {};
+(async () => {
+  const res = await fetch('/data/manifest.json');
+  manifest  = await res.json();
+  (window as any).manifest = manifest;           // global for import/export
 
-  /* 2️⃣ Sidebar */
+  /*──────────────── 2. render sidebar ──────────*/
   renderSidebar(Object.keys(manifest));
 
-  /* 3️⃣ UI chrome */
+  /*──────────────── 3. init widgets ────────────*/
   initToggles();
   initDraggable();
-  initTabs();
-  initSettings(); // includes “Choose folder” + ESV key input
-  setupImportExport();
+  initSettings();
+  initDrawerLogic();
+  initImportExportButtons();
 
-  /* 4️⃣ Default selection: first book/chap */
+  /*──────────────── 4. default selection ───────*/
   const [firstBook] = Object.keys(manifest);
   store.set('book', firstBook);
   store.set('chapter', '1');
   renderChapterContent(firstBook, '1');
-}
-
-bootstrap().catch((e) => {
-  console.error(e);
-  alert('Failed to start app – see console');
-});
+})();

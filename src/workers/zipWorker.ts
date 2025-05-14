@@ -1,29 +1,30 @@
-// src/workers/zipWorker.ts
-import { unzipSync, zipSync, strToU8, Uint8ArrayReader } from 'fflate';
+/* COMPLETE replacement — tiny file */
 
-/* Message schema:
-   { type:"export", payload:{ files: Record<filePath, markdownString> } }
-   { type:"import", payload: ArrayBuffer }  */
+import { zipSync, unzipSync, strToU8, Uint8ArrayReader } from 'fflate';
 
-self.onmessage = async (e: MessageEvent) => {
-  const { type, payload } = e.data;
+type Msg =
+  | { cmd: 'zip';   files: Record<string, string> }
+  | { cmd: 'unzip'; buffer: Uint8Array };
 
-  if (type === 'export') {
-    const u8 = zipSync(payload.files, { level: 9 });
-    postMessage({ ok: true, buffer: u8 }, [u8.buffer]);
-  }
-
-  if (type === 'import') {
+self.onmessage = (e: MessageEvent<Msg>) => {
+  if (e.data.cmd === 'zip') {
+    const buf = zipSync(
+      Object.fromEntries(
+        Object.entries(e.data.files).map(([k, v]) => [k, strToU8(v)])
+      ),
+      { level: 9 }
+    );
+    (self as any).postMessage({ ok: true, buffer: buf }, [buf.buffer]);
+  } else {
     try {
-      const files = unzipSync(new Uint8ArrayReader(new Uint8Array(payload)));
-      const out: Record<string, string> = {};
-      Object.entries(files).forEach(([name, u8]) => {
-        out[name] = new TextDecoder().decode(u8);
-      });
-      postMessage({ ok: true, files: out });
-    } catch (err) {
-      postMessage({ ok: false, error: (err as Error).message });
+      const files: Record<string, string> = {};
+      const unz = unzipSync(new Uint8ArrayReader(e.data.buffer));
+      for (const [name, data] of Object.entries(unz)) {
+        files[name] = new TextDecoder().decode(data as Uint8Array);
+      }
+      (self as any).postMessage({ ok: true, files });
+    } catch {
+      (self as any).postMessage({ ok: false });
     }
   }
 };
-export default null as any;
