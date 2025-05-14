@@ -1,46 +1,42 @@
-// src/storage/fs.ts  (File-System Access adapter – skeleton)
+// src/storage/fs.ts  (replace previous skeleton)
 import { AnyNote } from '../models';
+import { parseNote, stringifyNote } from '../utils/markdown';
 
 export namespace FSStorage {
   let rootHandle: FileSystemDirectoryHandle | null = null;
 
-  /** Called once after user picks the data/ folder */
   export function init(handle: FileSystemDirectoryHandle) {
     rootHandle = handle;
   }
 
-  /** List all Markdown files for a given book/chapter */
   export async function listFiles(
     book: string,
-    chapter: string
+    chap: string
   ): Promise<FileSystemFileHandle[]> {
     if (!rootHandle) throw new Error('FS not initialised');
-    const bookHandle = await rootHandle.getDirectoryHandle(book);
-    const chapHandle = await bookHandle.getDirectoryHandle(chapter);
+    const bookDir = await rootHandle.getDirectoryHandle(book);
+    const chapDir = await bookDir.getDirectoryHandle(chap);
     const out: FileSystemFileHandle[] = [];
-    for await (const entry of chapHandle.values()) {
-      if (entry.kind === 'file') out.push(entry);
+    for await (const entry of chapDir.values()) {
+      if (entry.kind === 'file' && entry.name.endsWith('.md')) out.push(entry);
     }
     return out;
   }
 
-  /** Read & parse one note */
   export async function readNote(
     handle: FileSystemFileHandle
   ): Promise<AnyNote> {
     const file = await handle.getFile();
-    const text = await file.text();
-    // TODO: parse YAML front-matter + body → AnyNote
-    return JSON.parse('{}');
+    return parseNote(await file.text());
   }
 
-  /** Write a note’s Markdown body to disk */
   export async function writeNote(
     handle: FileSystemFileHandle,
-    markdown: string
+    note: AnyNote
   ) {
+    const md = stringifyNote(note);
     const w = await handle.createWritable();
-    await w.write(markdown);
+    await w.write(md);
     await w.close();
   }
 
