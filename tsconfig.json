@@ -1,19 +1,41 @@
-// tsconfig.json  (root)
 {
   "compilerOptions": {
+    /* ▸ language / module targets */
     "target": "ES2021",
     "module": "ES2020",
     "moduleResolution": "Node",
-    "outDir": "dist",
+    "allowJs": false,                   /* ⬅︎  JS in src will now be ignored */
+
+    /* ▸ source ↦ output folders */
     "rootDir": "src",
-    "jsx": "react-jsx",
-    "strict": true,
+    "outDir": "dist",
+
+    /* ▸ emit helpers */
+    "declaration": true,               /* emit .d.ts next to transpiled JS */
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
     "esModuleInterop": true,
+
+    /* ▸ safety + consistency */
+    "strict": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
+
+    /* ▸ if you eventually add React JSX in notes editor */
+    "jsx": "react-jsx"
   },
-  "include": ["src/**/*", "scripts/**/*"],
-  "exclude": ["node_modules", "dist"]
+
+  /* what to compile */
+  "include": [
+    "src/**/*",
+    "workers/**/*",
+    "scripts/**/*",
+    "vite.config.ts"
+  ],
+
+  /* what NOT to touch */
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

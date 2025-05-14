@@ -1,38 +1,46 @@
-/* src/renderers/commentary.ts — FULL REPLACEMENT */
+/* ------------------------------------------------------------------
+   Commentary tab renderer
+   ------------------------------------------------------------------ */
 
+import MarkdownIt from 'markdown-it';
 import { listFiles, readNote, deleteNote } from '../storage';
-import { CommentaryNote }        from '../models';
-import { parseNote }             from '../utils/markdown';
-import MarkdownIt                from 'markdown-it';
+import { CommentaryNote, AnyNote } from '../models';
+import { parseNote }               from '../utils/markdown';
 
 const md = new MarkdownIt();
 
-/** Render Commentary notes for the active chapter */
+/** Render all “Commentary” notes for the current chapter */
 export async function renderCommentaryTab(book: string, chap: string) {
-  const panel = document.getElementById('tab-content')!;
+  const panel = document.getElementById('tab-content') as HTMLElement;
   panel.innerHTML = '<p class="italic">Loading…</p>';
 
-  /* gather & parse */
+  /* ── Collect notes ------------------------------------------------ */
   const pairs: { note: CommentaryNote; file: any }[] = [];
-  for (const f of await listFiles(book, chap)) {
-    const raw  = await readNote(f);
-    const note = parseNote(raw);
-    if (note && note.type === 'commentary') pairs.push({ note, file: f });
+
+  for (const file of await listFiles(book, chap)) {
+    /* readNote ⇒ raw Markdown string */
+    const raw = (await readNote(file)) as string;
+    const maybe = parseNote(raw) as AnyNote | null;
+
+    if (maybe?.type === 'commentary') {
+      pairs.push({ note: maybe as CommentaryNote, file });
+    }
   }
 
-  /* empty state */
+  /* ── Empty state -------------------------------------------------- */
   panel.innerHTML = '';
   if (!pairs.length) {
     panel.textContent = 'No commentary yet…';
     return;
   }
 
-  /* render each commentary */
-  for (const { note, file } of pairs) {
-    const wrap = document.createElement('div');
+  /* ── Render each commentary -------------------------------------- */
+  pairs.forEach(({ note, file }) => {
+    /* wrapper */
+    const wrap = document.createElement('section');
     wrap.className = 'mb-6';
 
-    /* header */
+    /* header with delete */
     const header = document.createElement('h2');
     header.className =
       'flex justify-between items-center font-semibold mb-2';
@@ -42,20 +50,20 @@ export async function renderCommentaryTab(book: string, chap: string) {
       </span>
       <button class="text-red-500 hover:text-red-700" title="Delete">🗑</button>
     `;
-    header.querySelector('button')!.addEventListener('click', async () => {
-      if (!confirm(`Delete commentary “${note.title}”?`)) return;
-      await deleteNote(file);
-      renderCommentaryTab(book, chap);
-    });
+    header
+      .querySelector('button')!
+      .addEventListener('click', async () => {
+        if (!confirm(`Delete commentary “${note.title}”?`)) return;
+        await deleteNote(file);
+        renderCommentaryTab(book, chap); // refresh
+      });
 
-    wrap.appendChild(header);
+    /* body */
+    const body = document.createElement('div');
+    body.className = 'prose dark:prose-invert';
+    body.innerHTML = md.render(note.content);
 
-    /* content */
-    const div = document.createElement('div');
-    div.className = 'prose dark:prose-invert';
-    div.innerHTML = md.render(note.content);
-    wrap.appendChild(div);
-
+    wrap.append(header, body);
     panel.appendChild(wrap);
-  }
+  });
 }

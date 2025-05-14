@@ -1,30 +1,40 @@
-/* COMPLETE replacement — tiny file */
+/* -----------------------------------------------------------------------
+   Dedicated-worker: ZIP ↔︎ UNZIP helpers using fflate
+   -------------------------------------------------------------------- */
 
-import { zipSync, unzipSync, strToU8, Uint8ArrayReader } from 'fflate';
+/// <reference lib="webworker" />
 
-type Msg =
-  | { cmd: 'zip';   files: Record<string, string> }
-  | { cmd: 'unzip'; buffer: Uint8Array };
+import { zipSync, unzipSync, strToU8 } from 'fflate';
 
-self.onmessage = (e: MessageEvent<Msg>) => {
+/* ---------- message contracts -------------------------------------- */
+type ZipMsg   = { cmd: 'zip';   files: Record<string, string> };
+type UnzipMsg = { cmd: 'unzip'; buffer: Uint8Array };
+
+type OkZip   = { ok: true;  buffer: Uint8Array };
+type OkUnzip = { ok: true;  files: Record<string, string> };
+type Fail    = { ok: false };
+
+/* ---------- strongly-typed self ------------------------------------ */
+declare const self: DedicatedWorkerGlobalScope;
+
+/* ---------- main handler ------------------------------------------- */
+self.onmessage = (e: MessageEvent<ZipMsg | UnzipMsg>) => {
   if (e.data.cmd === 'zip') {
-    const buf = zipSync(
-      Object.fromEntries(
-        Object.entries(e.data.files).map(([k, v]) => [k, strToU8(v)])
-      ),
-      { level: 9 }
+    /* turn { path: "string" } → { path: Uint8Array } then zip */
+    const u8Map = Object.fromEntries(
+      Object.entries(e.data.files).map(([k, v]) => [k, strToU8(v)])
     );
-    (self as any).postMessage({ ok: true, buffer: buf }, [buf.buffer]);
-  } else {
+    const buf = zipSync(u8Map, { level: 9 });
+    self.postMessage({ ok: true, buffer: buf } as OkZip, [buf.buffer]);
+  } else if (e.data.cmd === 'unzip') {
     try {
-      const files: Record<string, string> = {};
-      const unz = unzipSync(new Uint8ArrayReader(e.data.buffer));
-      for (const [name, data] of Object.entries(unz)) {
-        files[name] = new TextDecoder().decode(data as Uint8Array);
-      }
-      (self as any).postMessage({ ok: true, files });
+      const raw  = unzipSync(e.data.buffer);
+      const out: Record<string, string> = {};
+      for (const [name, arr] of Object.entries(raw))
+        out[name] = new TextDecoder().decode(arr as Uint8Array);
+      self.postMessage({ ok: true, files: out } as OkUnzip);
     } catch {
-      (self as any).postMessage({ ok: false });
+      self.postMessage({ ok: false } as Fail);
     }
   }
 };
