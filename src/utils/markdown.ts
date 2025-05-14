@@ -1,10 +1,8 @@
-// src/utils/markdown.ts
+// src/utils/markdown.ts  (NEW)
 import matter from 'gray-matter';
 import { AnyNote, NoteType } from '../models';
 
-/**
- * Parse a Markdown file and return its typed note.
- */
+/* ── Parse Markdown with YAML front-matter → typed note ───────── */
 export function parseNote(md: string): AnyNote {
   const { data, content } = matter(md);
 
@@ -13,7 +11,7 @@ export function parseNote(md: string): AnyNote {
     title: data.title as string,
     range: data.range as string,
     created: data.created as string | undefined,
-    updated: data.updated as string | undefined,
+    updated: data.updated as string | undefined
   };
 
   if (data.type === 'outline') {
@@ -25,18 +23,17 @@ export function parseNote(md: string): AnyNote {
   return { ...base, type: 'commentary', content };
 }
 
-/**
- * Convert a note back into Markdown for disk.
- */
+/* ── Serialize note → Markdown with front-matter ──────────────── */
 export function stringifyNote(note: AnyNote): string {
   const { type, title, range, created, updated } = note;
 
   const front: Record<string, unknown> = { type, title, range, created, updated };
 
   if (type === 'outline') front.items = note.items;
+
   const body =
     type === 'outline'
-      ? '\n' // outlines don’t need body
+      ? '\n' // outlines need no body markdown
       : note.content;
 
   return matter.stringify(body, front);
