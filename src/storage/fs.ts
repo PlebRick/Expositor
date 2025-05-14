@@ -1,14 +1,16 @@
-// src/storage/fs.ts  (replace previous skeleton)
+// src/storage/fs.ts  (FULL REPLACEMENT)
 import { AnyNote } from '../models';
 import { parseNote, stringifyNote } from '../utils/markdown';
 
 export namespace FSStorage {
   let rootHandle: FileSystemDirectoryHandle | null = null;
 
+  /** Called once after user picks the top-level `data/` folder */
   export function init(handle: FileSystemDirectoryHandle) {
     rootHandle = handle;
   }
 
+  /** List Markdown files for a chapter */
   export async function listFiles(
     book: string,
     chap: string
@@ -23,13 +25,13 @@ export namespace FSStorage {
     return out;
   }
 
-  export async function readNote(
-    handle: FileSystemFileHandle
-  ): Promise<AnyNote> {
+  /** Read & parse a note */
+  export async function readNote(handle: FileSystemFileHandle): Promise<AnyNote> {
     const file = await handle.getFile();
     return parseNote(await file.text());
   }
 
+  /** Overwrite a note file */
   export async function writeNote(
     handle: FileSystemFileHandle,
     note: AnyNote
@@ -40,6 +42,7 @@ export namespace FSStorage {
     await w.close();
   }
 
+  /** Delete a note file */
   export async function deleteNote(handle: FileSystemFileHandle) {
     await handle.remove();
   }
