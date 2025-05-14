@@ -1,0 +1,147 @@
+{
+  "outline": {
+    "Genesis": {
+      "chapters": {
+        "1": [
+          {
+            "title": "test",
+            "range": "1-5",
+            "items": [
+              {
+                "text": "1",
+                "verse": "1",
+                "subpoints": []
+              },
+              {
+                "text": "2",
+                "verse": "4",
+                "subpoints": []
+              },
+              {
+                "text": "2",
+                "verse": "5",
+                "subpoints": []
+              }
+            ]
+          },
+          {
+            "title": "Sample Outline",
+            "range": "1–2",
+            "items": [
+              {
+                "text": "God creates light",
+                "verse": "1",
+                "subpoints": []
+              },
+              {
+                "text": "God separates light from darkness",
+                "verse": "2",
+                "subpoints": []
+              }
+            ]
+          },
+          {
+            "title": "Test 2 after refactor",
+            "range": "5-7",
+            "items": [
+              {
+                "text": "poin 1",
+                "verse": "5",
+                "subpoints": [
+                  "test subpoint"
+                ]
+              },
+              {
+                "text": "point 2",
+                "verse": "6",
+                "subpoints": []
+              },
+              {
+                "text": "point 3",
+                "verse": "7",
+                "subpoints": []
+              }
+            ]
+          },
+          {
+            "title": "Test outline for 20-24",
+            "range": "20-24",
+            "items": [
+              {
+                "text": "1",
+                "verse": "",
+                "subpoints": []
+              },
+              {
+                "text": "2",
+                "verse": "",
+                "subpoints": []
+              },
+              {
+                "text": "3",
+                "verse": "",
+                "subpoints": []
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "manuscript": {
+    "Genesis": {
+      "chapters": {
+        "1": [
+          {
+            "title": "test",
+            "range": "1-5",
+            "content": "test content"
+          },
+          {
+            "title": "Sample Manuscript",
+            "range": "1–2",
+            "content": "In the beginning…"
+          },
+          {
+            "title": "test 2",
+            "range": "11-13",
+            "content": "11-13 manuscript text"
+          },
+          {
+            "title": "test manuscript for 20-24",
+            "range": "20-24",
+            "content": "test manuscript 20-24 text"
+          }
+        ]
+      }
+    }
+  },
+  "commentary": {
+    "Genesis": {
+      "chapters": {
+        "1": [
+          {
+            "title": "test",
+            "range": "1-5",
+            "content": "test commentary"
+          },
+          {
+            "title": "Sample Commentary",
+            "range": "1–2",
+            "content": "Here God demonstrates…"
+          },
+          {
+            "title": "Commentary test 2",
+            "range": "11-13",
+            "content": "11-13 commentary text"
+          },
+          {
+            "title": "test commentary for 20-24",
+            "range": "20-24",
+            "content": "test text for commentary 20-24"
+          }
+        ]
+      }
+    }
+  }
+}

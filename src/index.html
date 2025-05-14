@@ -1,12 +1,11 @@
-<!-- Page Title: Expository Static Layout -->
-<!-- File Path: src/index.html -->
+<!-- File: src/index.html -->
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expositor</title>
-  <!-- Tailwind CSS -->
+  <!-- Tailwind-generated CSS -->
   <link href="style.css" rel="stylesheet" />
 </head>
 <body class="flex flex-col h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
@@ -34,7 +33,7 @@
       <h1 class="inline-block text-xl font-semibold">Expositor</h1>
     </div>
 
-    <!-- Right: Export/Import, Theme toggle, Settings -->
+    <!-- Right: Import/Export, Theme toggle, Settings -->
     <div class="flex items-center space-x-2">
       <!-- Import -->
       <button
@@ -102,7 +101,7 @@
                    c0-1.93 1.57-3.5 3.5-3.5
                    .414 0 .764-.297.864-.718z"/>
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                d="M15 12a3 3 0 11-6 0 3 3 0 "/>
         </svg>
       </button>
     </div>
@@ -145,7 +144,7 @@
         aria-label="Supplemental tabs"
       >
         <nav class="flex border-b border-gray-300 dark:border-gray-600">
-          <!-- Outline tab + button -->
+          <!-- Outline tab + new button -->
           <div class="relative flex-1">
             <button
               data-tab="outline"
@@ -155,16 +154,9 @@
               id="btn-open-outline"
               aria-label="New Outline"
               class="absolute top-1 right-1 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   class="h-5 w-5 text-gray-800 dark:text-gray-100"
-                   fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 4v16m8-8H4"/>
-              </svg>
-            </button>
+            >＋</button>
           </div>
-          <!-- Manuscript tab + button -->
+          <!-- Manuscript tab + new button -->
           <div class="relative flex-1">
             <button
               data-tab="manuscript"
@@ -174,16 +166,9 @@
               id="btn-open-manuscript"
               aria-label="New Manuscript"
               class="absolute top-1 right-1 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   class="h-5 w-5 text-gray-800 dark:text-gray-100"
-                   fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 4v16m8-8H4"/>
-              </svg>
-            </button>
+            >＋</button>
           </div>
-          <!-- Commentary tab + button -->
+          <!-- Commentary tab + new button -->
           <div class="relative flex-1">
             <button
               data-tab="commentary"
@@ -193,14 +178,7 @@
               id="btn-open-commentary"
               aria-label="New Commentary"
               class="absolute top-1 right-1 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   class="h-5 w-5 text-gray-800 dark:text-gray-100"
-                   fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 4v16m8-8H4"/>
-              </svg>
-            </button>
+            >＋</button>
           </div>
         </nav>
 
@@ -213,35 +191,26 @@
     </section>
   </main>
 
-  <!-- Slide-in Drawer (reused for all three) -->
-  <!-- Slide-in Drawer (reused for all three) -->
+  <!-- Slide-in Drawer -->
   <div
     id="slide-drawer"
     class="fixed top-0 right-0 h-full w-96 bg-white dark:bg-gray-800 shadow-lg transform translate-x-full transition-transform duration-200 ease-in-out z-50 flex flex-col"
     aria-label="Editor drawer"
->
-    <!-- Drawer header -->
+  >
     <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
       <h2 id="drawer-title" class="text-lg font-semibold">Editor</h2>
       <button
         id="btn-close-drawer"
         aria-label="Close"
         class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg"
-             class="h-6 w-6 text-gray-800 dark:text-gray-100"
-             fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
+      >×</button>
     </div>
-    <!-- Drawer body for dynamic form/editor -->
     <div id="drawer-body" class="p-4 overflow-auto flex-1 space-y-4">
-      <!-- TODO: inject Outline form, Manuscript editor, or Commentary editor here -->
+      <!-- Dynamic form content injected here -->
     </div>
   </div>
 
-  <script src="./script.js"></script>
+  <!-- Orchestrator -->
+  <script type="module" src="./index.js"></script>
 </body>
 </html>

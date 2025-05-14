@@ -1,0 +1,41 @@
+{
+  "book": "Genesis",
+  "chapter": "1",
+  "outlines": [
+    {
+      "title": "test",
+      "range": "1-5",
+      "items": [
+        {
+          "text": "1",
+          "verse": "1",
+          "subpoints": []
+        },
+        {
+          "text": "2",
+          "verse": "4",
+          "subpoints": []
+        },
+        {
+          "text": "2",
+          "verse": "5",
+          "subpoints": []
+        }
+      ]
+    }
+  ],
+  "manuscripts": [
+    {
+      "title": "test",
+      "range": "1-5",
+      "content": "test content"
+    }
+  ],
+  "commentaries": [
+    {
+      "title": "test",
+      "range": "1-5",
+      "content": "test commentary"
+    }
+  ]
+}
