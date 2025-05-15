@@ -1,3 +1,5 @@
+//src/renderers/chapter.ts
+
 /* UI-shell logic: theme toggle, sidebar drag, Settings drawer & helpers */
 
 import { $, id, button } from './utils/dom';
@@ -83,24 +85,44 @@ async function renderSettings() {
     })
   );
 
-  /* ESV key input */
+  /* ─────────── ESV API key input + Save button ─────────── */
+
   const current = (await loadSettingKV<string>('esvKey')) ?? '';
+  let dirty = false;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'mb-4';
+
   const label = document.createElement('label');
-  label.className = 'block mb-4';
-  label.innerHTML = '<span class="text-sm">ESV API Key</span>';
+  label.className = 'block text-sm mb-1';
+  label.textContent = 'ESV API Key';
+  wrapper.appendChild(label);
 
   const inp = document.createElement('input');
-  inp.className = 'w-full p-2 border rounded bg-white dark:bg-gray-700';
+  inp.className =
+    'w-full p-2 border rounded bg-white dark:bg-gray-700 mb-2 focus:outline-none focus:ring';
   inp.placeholder = 'Paste ESV API key here';
   inp.value = current;
+  wrapper.appendChild(inp);
 
-  /* Save on every change so it survives reloads */
+  const saveBtn = button(
+    'Save key',
+    'px-3 py-1 bg-indigo-600 text-white rounded disabled:opacity-40',
+    () => {
+      saveSettingKV('esvKey', inp.value.trim());
+      toast('ESV API key saved');
+      dirty = false;
+      saveBtn.disabled = true;
+    }
+  );
+  saveBtn.disabled = true;                // disabled until the user edits
+  wrapper.appendChild(saveBtn);
+  body.appendChild(wrapper);
+
   inp.addEventListener('input', () => {
-    saveSettingKV('esvKey', inp.value.trim());
+    dirty = true;
+    saveBtn.disabled = false;
   });
-
-  label.appendChild(inp);
-  body.appendChild(label);
 }
 
 /* ──────────────────────────── Toast utilities ────────────────────────────── */
