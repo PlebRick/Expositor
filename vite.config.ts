@@ -1,17 +1,24 @@
-/* vite.config.ts – drop this in project root */
+/* vite.config.ts  – project root */
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig({
-  root: '.',               // project root (default)
-  publicDir: 'public',      // static assets
+  /** Your real source root (= where index.html lives) */
+  root: 'src',
+
+  /** Static files (icons, manifest.json, etc.) still live in /public */
+  publicDir: resolve(__dirname, 'public'),
+
   build: {
-    outDir: 'dist',         // make sure everything bundles to /dist
-    emptyOutDir: true,      // wipe dist on each build
-    sourcemap: true         // helpful for debugging prod bundle
+    /** Bundle goes to project-root/dist (one level up from src) */
+    outDir: resolve(__dirname, 'dist'),
+    emptyOutDir: true,
+    sourcemap: true
   },
+
   resolve: {
     alias: {
-      '@': '/src'           // so you can import '@/utils/xxx'
+      '@': resolve(__dirname, 'src')   // so `import '@/utils/foo'` still works
     }
   }
 });

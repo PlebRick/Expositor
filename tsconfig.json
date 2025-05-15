@@ -30,7 +30,6 @@
     "src/**/*",
     "workers/**/*",
     "scripts/**/*",
-    "vite.config.ts"
   ],
 
   /* what NOT to touch */
