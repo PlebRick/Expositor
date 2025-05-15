@@ -1,17 +1,20 @@
+// File: tsconfig.json
+// Page Title: Expositor — TypeScript Config (adds DOM libs for FS-API)
+
 {
   "compilerOptions": {
     /* ▸ language / module targets */
     "target": "ES2021",
     "module": "ES2020",
     "moduleResolution": "Node",
-    "allowJs": false,                   /* ⬅︎  JS in src will now be ignored */
+    "allowJs": false,                   /* JS in src will be ignored */
 
     /* ▸ source ↦ output folders */
     "rootDir": "src",
     "outDir": "dist",
 
     /* ▸ emit helpers */
-    "declaration": true,               /* emit .d.ts next to transpiled JS */
+    "declaration": true,               /* emit .d.ts alongside JS */
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
@@ -21,6 +24,9 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
 
+    /* ▸ DOM types (adds File-System Access API) */
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
+
     /* ▸ if you eventually add React JSX in notes editor */
     "jsx": "react-jsx"
   },
@@ -29,7 +35,7 @@
   "include": [
     "src/**/*",
     "workers/**/*",
-    "scripts/**/*",
+    "scripts/**/*"
   ],
 
   /* what NOT to touch */

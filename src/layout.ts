@@ -1,41 +1,43 @@
-//src/renderers/chapter.ts
-
-/* UI-shell logic: theme toggle, sidebar drag, Settings drawer & helpers */
+// File: src/layout.ts
+// Page Title: Expositor — Layout, Settings Drawer & Toast
 
 import { $, id, button } from './utils/dom';
-import { initFS, saveSettingKV, loadSettingKV } from './storage';
+import {
+  initFS,
+  saveSettingKV,
+  loadSettingKV,
+  getBackend,
+} from './storage';
 
-/* ────────────────────────── Theme & sidebar toggle ───────────────────────── */
-
+/* ─────────────────────── Theme & sidebar toggles ─────────────────────── */
 export function initToggles() {
-  /* dark / light */
   id('btn-toggle-theme').addEventListener('click', () =>
-    document.documentElement.classList.toggle('dark')
+    document.documentElement.classList.toggle('dark'),
   );
 
-  /* sidebar show / hide */
   id('btn-toggle-sidebar').addEventListener('click', () =>
-    id('sidebar').classList.toggle('hidden')
+    id('sidebar').classList.toggle('hidden'),
   );
 }
 
-/* ───────────────────────────── Column drag handles ───────────────────────── */
-
+/* ─────────────────────── Column drag handles ─────────────────────────── */
 export function initDraggable() {
   const h1 = id('drag-handle-1');
   const h2 = id('drag-handle-2');
   const cont = id('content');
-  const sb   = id('sidebar');
-  const rp   = id('right-panel');
+  const sb = id('sidebar');
+  const rp = id('right-panel');
   let drag: 'sidebar' | 'right' | null = null;
 
   const onMove = (e: MouseEvent) => {
     if (drag === 'sidebar') {
-      sb.style.width = Math.min(Math.max(e.clientX, 150), cont.clientWidth - 200) + 'px';
+      sb.style.width =
+        Math.min(Math.max(e.clientX, 150), cont.clientWidth - 200) + 'px';
     }
     if (drag === 'right') {
       const rect = cont.getBoundingClientRect();
-      rp.style.width = Math.min(Math.max(rect.right - e.clientX, 200), rect.width - 150) + 'px';
+      rp.style.width =
+        Math.min(Math.max(rect.right - e.clientX, 200), rect.width - 150) + 'px';
     }
   };
   const onUp = () => {
@@ -55,86 +57,124 @@ export function initDraggable() {
   h2.addEventListener('mousedown', () => onDown('right'));
 }
 
-/* ───────────────────────────── Settings drawer ───────────────────────────── */
-
-/** Public helper so other modules (e.g. chapter renderer) can open Settings */
+/* ───────────────────────── Settings drawer ───────────────────────────── */
 export function openSettings() {
   id('slide-drawer').classList.remove('translate-x-full');
-  renderSettings();             // internal fn below
+  renderSettings();
 }
 
 export function initSettings() {
   id('btn-settings').addEventListener('click', openSettings);
 }
 
-/* Main render-function for the Settings drawer */
+/* ---------------------------------------------------------------------- */
+/*                               DRAWER UI                                */
+/* ---------------------------------------------------------------------- */
+
 async function renderSettings() {
   id('drawer-title').textContent = 'Settings';
   const body = id('drawer-body');
   body.innerHTML = '';
 
-  /* data-folder picker button */
-  body.appendChild(
-    button('Choose Data Folder', 'px-4 py-2 bg-indigo-600 text-white rounded mb-4', async () => {
-      try {
-        // @ts-ignore  File-System Access API
-        const dir = await window.showDirectoryPicker();
-        await initFS(dir);
-        toast('Folder linked ✔︎  (data will now save as Markdown files)');
-      } catch { toast('Folder access was denied', 'error'); }
-    })
+  /* ────────────── Folder picker (robust) ────────────── */
+  const folderBtn = button(
+    'Choose Data Folder',
+    'px-4 py-2 bg-indigo-600 text-white rounded mb-4',
+    pickFolder,
   );
 
-  /* ─────────── ESV API key input + Save button ─────────── */
+  /* Disable if File-System Access API unsupported */
+  if (!('showDirectoryPicker' in window)) {
+    folderBtn.disabled = true;
+    folderBtn.classList.add('opacity-40', 'cursor-not-allowed');
+    folderBtn.textContent = 'Folder picker unsupported (use Chromium)';
+  }
+  body.appendChild(folderBtn);
 
-  const current = (await loadSettingKV<string>('esvKey')) ?? '';
-  let dirty = false;
-
+  /* ──────────────  ESV API key input + Save  ────────────── */
+  const storedKey = (await loadSettingKV<string>('esvKey')) ?? '';
   const wrapper = document.createElement('div');
   wrapper.className = 'mb-4';
 
   const label = document.createElement('label');
-  label.className = 'block text-sm mb-1';
+  label.className = 'block mb-2 text-sm';
   label.textContent = 'ESV API Key';
   wrapper.appendChild(label);
 
   const inp = document.createElement('input');
-  inp.className =
-    'w-full p-2 border rounded bg-white dark:bg-gray-700 mb-2 focus:outline-none focus:ring';
+  inp.className = 'w-full p-2 border rounded bg-white dark:bg-gray-700';
   inp.placeholder = 'Paste ESV API key here';
-  inp.value = current;
+  inp.value = storedKey;
   wrapper.appendChild(inp);
 
-  const saveBtn = button(
-    'Save key',
-    'px-3 py-1 bg-indigo-600 text-white rounded disabled:opacity-40',
-    () => {
-      saveSettingKV('esvKey', inp.value.trim());
-      toast('ESV API key saved');
-      dirty = false;
-      saveBtn.disabled = true;
-    }
-  );
-  saveBtn.disabled = true;                // disabled until the user edits
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.className =
+    'mt-2 px-4 py-2 rounded ' +
+    'bg-indigo-600 text-white disabled:opacity-40 disabled:cursor-not-allowed';
   wrapper.appendChild(saveBtn);
-  body.appendChild(wrapper);
 
-  inp.addEventListener('input', () => {
-    dirty = true;
-    saveBtn.disabled = false;
+  /* Enable button only when value changed */
+  const checkDirty = () =>
+    (saveBtn.disabled = inp.value.trim() === storedKey.trim());
+  inp.addEventListener('input', checkDirty);
+  checkDirty();
+
+  saveBtn.addEventListener('click', () => {
+    const key = inp.value.trim();
+    if (!key) {
+      toast('Key cannot be empty', true);
+      return;
+    }
+    saveSettingKV('esvKey', key);
+    toast('ESV API key saved ✔︎');
+    saveBtn.disabled = true;
   });
+
+  body.appendChild(wrapper);
 }
 
-/* ──────────────────────────── Toast utilities ────────────────────────────── */
+/* ---------------------------------------------------------------------- */
+/*                          Folder-pick  handler                          */
+/* ---------------------------------------------------------------------- */
+async function pickFolder() {
+  try {
+    // @ts-ignore  File-System Access API
+    const dir: FileSystemDirectoryHandle = await window.showDirectoryPicker();
 
-function toast(msg: string, type: 'info' | 'error' = 'info') {
-  const el = document.createElement('div');
-  el.textContent = msg;
-  el.className =
+    /* request read-write permission explicitly */
+    const perm = await dir.requestPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') {
+      toast('Folder permission denied', true);
+      return;
+    }
+
+    await initFS(dir);
+    toast('Folder linked ✔︎');
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      toast('No folder selected');
+    } else if (err?.name === 'NotAllowedError') {
+      toast('Folder permission denied', true);
+    } else {
+      console.error(err);
+      toast('Unexpected error picking folder', true);
+    }
+  }
+}
+
+/* ─────────────────────────── Helpers ─────────────────────────────── */
+export async function needsInitialSetup(): Promise<boolean> {
+  const esvKey = (await loadSettingKV<string>('esvKey')) ?? '';
+  return getBackend() === 'idb' || !esvKey;
+}
+
+function toast(msg: string, err = false) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.className =
     'fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded shadow ' +
-    (type === 'error'
-      ? 'bg-red-600 text-white'
-      : 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900');
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+    (err ? 'bg-red-600 text-white' : 'bg-gray-800 text-white');
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
 }

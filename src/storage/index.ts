@@ -1,5 +1,5 @@
 // File: src/storage/index.ts
-// Page Title: Expositor — Storage Facade (FS & IndexedDB)
+// Page Title: Expositor — Storage Facade (FS ↔ IDB, handle-restore)
 
 import { FSStorage } from './fs';
 import {
@@ -15,57 +15,82 @@ import {
 import { AnyNote } from '../models';
 import { stringifyNote } from '../utils/markdown';
 
-/* ───────────────────────── Types & state ───────────────────────── */
+/* ───────────────────────── state & helpers ───────────────────────── */
 export type StorageBackend = 'fs' | 'idb';
 let backend: StorageBackend = 'idb';
+export const getBackend = () => backend;
 
-/** Public getter so UI can know which backend is active */
-export const getBackend = (): StorageBackend => backend;
+/** key used to persist the chosen FileSystemDirectoryHandle */
+const HANDLE_SETTING = 'fsHandle';
 
-/* ───────────── Switch to File-System mode after folder pick ────── */
-export function initFS(handle: FileSystemDirectoryHandle) {
+/* ───────────────────── init / persist FS mode ───────────────────── */
+export async function initFS(
+  handle: FileSystemDirectoryHandle,
+  persist: boolean = true,
+) {
   FSStorage.init(handle);
   backend = 'fs';
-  (window as any).expositorFS = handle; // dev-tools helper
+  (window as any).expositorFS = handle;            // dev-tools helper
+
+  if (persist) {
+    try {
+      await saveSettingKV(HANDLE_SETTING, handle); // structured-clone
+    } catch {/* ignore (e.g. private mode) */}
+  }
 }
 
-/* ─────────────────────── list chapter files ────────────────────── */
+/** Call once at boot to re-hydrate a previously stored folder handle */
+export async function restoreFSHandle() {
+  try {
+    const handle =
+      (await loadSettingKV<FileSystemDirectoryHandle>(HANDLE_SETTING)) ?? null;
+    if (!handle) return;
+
+    let perm = await handle.queryPermission({ mode: 'readwrite' });
+    if (perm === 'prompt') {
+      perm = await handle.requestPermission({ mode: 'readwrite' });
+    }
+    if (perm === 'granted') initFS(handle, /*persist*/ false);
+  } catch {/* corrupt handle or user denied – fall back to IDB */}
+}
+
+/* ─────────────────────── listFiles (uniform) ─────────────────────── */
 export async function listFiles(book: string, chap: string) {
   if (backend === 'fs') return FSStorage.listFiles(book, chap);
 
   const db      = await dbPromise;
-  const allKeys = (await db.getAllKeys('notes')) as string[];
   const prefix  = `${book}/${chap}/`;
-
-  return allKeys
-    .filter((k) => k.startsWith(prefix))
-    .map((k) => ({ kind: 'file' as const, name: k }));
+  return (await db.getAllKeys('notes'))
+    .filter((k: string) => k.startsWith(prefix)) as string[];
 }
 
-/* ─────────────────── read / write / delete note ────────────────── */
-export const readNote = async (h: { name: string } | FileSystemFileHandle) =>
+/* ───────────── read / write / delete wrapper ───────────── */
+export const readNote = async (h: string | FileSystemFileHandle) =>
   backend === 'fs'
     ? FSStorage.readNote(h as FileSystemFileHandle)
-    : idbRead((h as { name: string }).name);
+    : idbRead(h as string);
 
-export const deleteNote = async (h: { name: string } | FileSystemFileHandle) =>
+export const deleteNote = async (h: string | FileSystemFileHandle) =>
   backend === 'fs'
     ? FSStorage.deleteNote(h as FileSystemFileHandle)
-    : idbDelete((h as { name: string }).name);
+    : idbDelete(h as string);
 
 export const writeNote = async (
-  h: { name: string } | FileSystemFileHandle,
+  h: string | FileSystemFileHandle,
   note: AnyNote,
 ) =>
   backend === 'fs'
     ? FSStorage.writeNote(h as FileSystemFileHandle, note)
-    : idbWrite((h as { name: string }).name, stringifyNote(note));
+    : idbWrite(h as string, stringifyNote(note));
 
-/* ─────────────────────── create new note ───────────────────────── */
-export async function createNote(book: string, chap: string, note: AnyNote) {
+/* ───────────────────────── create note ───────────────────────────── */
+export async function createNote(
+  book: string,
+  chap: string,
+  note: AnyNote,
+): Promise<string | FileSystemFileHandle> {
   const fileName = await nextSlug(book, chap, note);
 
-  /* FS backend */
   if (backend === 'fs') {
     const root    = (window as any).expositorFS as FileSystemDirectoryHandle;
     const bookDir = await root.getDirectoryHandle(book, { create: true });
@@ -75,26 +100,25 @@ export async function createNote(book: string, chap: string, note: AnyNote) {
     return handle;
   }
 
-  /* IDB backend */
   const key = `${book}/${chap}/${fileName}`;
   await idbWrite(key, stringifyNote(note));
-  return { name: key };
+  return key;
 }
 
-/* ── ensure unique slug if duplicate range/title already exists ─── */
+/* ───────────── ensure unique slug per chapter ───────────── */
 async function nextSlug(book: string, chap: string, note: AnyNote) {
-  const base  = `${note.type}-${note.range.replace(/\\s+/g, '')}`;
-  let   file  = `${base}.md`;
-  let   index = 1;
+  const base = `${note.type}-${note.range.replace(/\s+/g, '')}`;
+  let   file = `${base}.md`;
+  let   idx  = 1;
 
   const exists = async (f: string) =>
     backend === 'fs'
       ? FSStorage.fileExists(book, chap, f)
       : idbExists(`${book}/${chap}/${f}`);
 
-  while (await exists(file)) file = `${base}-${index++}.md`;
+  while (await exists(file)) file = `${base}-${idx++}.md`;
   return file;
 }
 
-/* ───────────────────── settings helpers re-export ──────────────── */
+/* settings helpers re-export */
 export { saveSettingKV, loadSettingKV };
