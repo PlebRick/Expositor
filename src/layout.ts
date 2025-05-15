@@ -1,6 +1,4 @@
-/* src/layout.ts
- * UI-shell logic: theme toggle, sidebar drag, Settings drawer.
- */
+/* UI-shell logic: theme toggle, sidebar drag, Settings drawer & helpers */
 
 import { $, id, button } from './utils/dom';
 import { initFS, saveSettingKV, loadSettingKV } from './storage';
@@ -57,39 +55,64 @@ export function initDraggable() {
 
 /* ───────────────────────────── Settings drawer ───────────────────────────── */
 
-export function initSettings() {
-  id('btn-settings').addEventListener('click', () => {
-    id('slide-drawer').classList.remove('translate-x-full');
-    renderSettings();
-  });
+/** Public helper so other modules (e.g. chapter renderer) can open Settings */
+export function openSettings() {
+  id('slide-drawer').classList.remove('translate-x-full');
+  renderSettings();             // internal fn below
 }
 
+export function initSettings() {
+  id('btn-settings').addEventListener('click', openSettings);
+}
+
+/* Main render-function for the Settings drawer */
 async function renderSettings() {
   id('drawer-title').textContent = 'Settings';
   const body = id('drawer-body');
   body.innerHTML = '';
 
-  /* folder picker button */
+  /* data-folder picker button */
   body.appendChild(
     button('Choose Data Folder', 'px-4 py-2 bg-indigo-600 text-white rounded mb-4', async () => {
       try {
         // @ts-ignore  File-System Access API
         const dir = await window.showDirectoryPicker();
         await initFS(dir);
-        alert('Folder linked ✔︎  (data will now save as Markdown files)');
-      } catch { alert('Folder access was denied'); }
+        toast('Folder linked ✔︎  (data will now save as Markdown files)');
+      } catch { toast('Folder access was denied', 'error'); }
     })
   );
 
   /* ESV key input */
-  const esvKey = (await loadSettingKV<string>('esvKey')) ?? '';
+  const current = (await loadSettingKV<string>('esvKey')) ?? '';
   const label = document.createElement('label');
   label.className = 'block mb-4';
   label.innerHTML = '<span class="text-sm">ESV API Key</span>';
+
   const inp = document.createElement('input');
   inp.className = 'w-full p-2 border rounded bg-white dark:bg-gray-700';
-  inp.value = esvKey;
-  inp.addEventListener('change', () => saveSettingKV('esvKey', inp.value.trim()));
+  inp.placeholder = 'Paste ESV API key here';
+  inp.value = current;
+
+  /* Save on every change so it survives reloads */
+  inp.addEventListener('input', () => {
+    saveSettingKV('esvKey', inp.value.trim());
+  });
+
   label.appendChild(inp);
   body.appendChild(label);
+}
+
+/* ──────────────────────────── Toast utilities ────────────────────────────── */
+
+function toast(msg: string, type: 'info' | 'error' = 'info') {
+  const el = document.createElement('div');
+  el.textContent = msg;
+  el.className =
+    'fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded shadow ' +
+    (type === 'error'
+      ? 'bg-red-600 text-white'
+      : 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900');
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
 }
